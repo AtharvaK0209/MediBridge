@@ -1,0 +1,47 @@
+body {
+    background: linear-gradient(to right, #e8f5e9, #ffffff);
+    font-family: 'Segoe UI', sans-serif;
+}
+
+/* Navbar brand */
+.navbar-brand {
+    font-weight: bold;
+    font-size: 1.3rem;
+}
+
+/* Hero section */
+.hero {
+    padding: 100px 0;
+    text-align: center;
+}
+
+.hero h1 {
+    font-size: 3rem;
+    color: #198754;
+    font-weight: bold;
+}
+
+.hero p {
+    font-size: 1.2rem;
+    color: #555;
+}
+
+/* Card styling */
+.custom-card {
+    border-radius: 15px;
+    box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+}
+
+/* Buttons */
+.btn-success {
+    border-radius: 10px;
+    padding: 10px 25px;
+}
+
+/* Form card */
+.form-card {
+    border-radius: 15px;
+    box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+    padding: 30px;
+    background: white;
+}

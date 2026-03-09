@@ -1,0 +1,12 @@
+POST http://127.0.0.1:5000/add_medicine
+Content-Type: application/json
+
+{
+ "pharmacy_id":1,
+ "barcode":"B001",
+ "medicine_name":"Paracetamol",
+ "quantity":50,
+ "expiry_date":"2026-03-10",
+ "original_price":25,
+ "discount_price":20
+}
