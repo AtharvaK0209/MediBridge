@@ -3,6 +3,8 @@ from database import get_db_connection
 from flask import Flask, render_template
 from routes.auth import auth_bp
 from routes.pharmacy import pharmacy_bp
+from routes.ngo import ngo_bp
+
 
 
 # Create Flask app
@@ -11,6 +13,7 @@ app = Flask(__name__)
 # Register Blueprints
 app.register_blueprint(auth_bp)
 app.register_blueprint(pharmacy_bp)
+app.register_blueprint(ngo_bp)
 
 @app.route("/")
 def home():
@@ -48,7 +51,9 @@ def login_page():
 def pharmacy_dashboard():
     return render_template("pharmacy_dashboard.html")
 
-
+@app.route("/ngo-dashboard")
+def ngo_dashboard():
+    return render_template("ngo_dashboard.html")
 
 if __name__ == "__main__":
     app.run(debug=True)

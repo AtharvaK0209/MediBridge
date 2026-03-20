@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>MediBridge | NGO Dashboard</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+
+<nav class="navbar navbar-dark bg-success">
+  <div class="container">
+    <a class="navbar-brand">MediBridge NGO</a>
+    <button class="btn btn-light" onclick="logout()">Logout</button>
+  </div>
+</nav>
+
+<div class="container mt-5">
+
+    <h2 class="text-success mb-4">NGO Dashboard</h2>
+
+    <div class="row text-center">
+
+        <div class="col-md-4">
+            <div class="card p-4">
+                <h5>Available Medicines</h5>
+                <h3 id="available">0</h3>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card p-4">
+                <h5>Requests Made</h5>
+                <h3 id="requests">0</h3>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card p-4">
+                <h5>Approved Requests</h5>
+                <h3 id="approved">0</h3>
+            </div>
+        </div>
+
+    </div>
+
+    <div class="mt-5 text-center">
+        <button class="btn btn-success" onclick="loadAvailable()">View Available Medicines</button>
+    </div>
+
+    <div class="mt-4">
+        <table class="table table-bordered">
+            <thead class="table-success">
+                <tr>
+                    <th>Medicine</th>
+                    <th>Quantity</th>
+                    <th>Expiry</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody id="ngoTable"></tbody>
+        </table>
+    </div>
+
+</div>
+
+<script>
+function logout(){
+localStorage.clear();
+window.location.href="/login-page";
+}
+
+async function loadAvailable(){
+
+let res = await fetch("/available-medicines");
+let data = await res.json();
+
+let table = document.getElementById("ngoTable");
+table.innerHTML = "";
+
+let count = 0;
+
+data.forEach(med => {
+
+count++;
+
+table.innerHTML += `
+<tr>
+<td>${med.medicine_name}</td>
+<td>${med.quantity}</td>
+<td>${med.expiry_date}</td>
+<td>${med.status}</td>
+<td>
+<button class="btn btn-primary btn-sm"
+onclick="requestMedicine(${med.medicine_id})">
+Request
+</button>
+</td>
+</tr>
+`;
+});
+
+document.getElementById("available").innerText = count;
+}
+
+async function requestMedicine(medicine_id){
+
+let ngo_id = localStorage.getItem("user_id");
+
+await fetch("/request-medicine",{
+method:"POST",
+headers:{"Content-Type":"application/json"},
+body:JSON.stringify({
+medicine_id: medicine_id,
+ngo_id: ngo_id,
+quantity: 1
+})
+});
+
+alert("Request sent");
+loadStats();
+}
+
+async function loadStats(){
+
+let user_id = localStorage.getItem("user_id");
+
+let res = await fetch(`/ngo-stats/${user_id}`);
+let data = await res.json();
+
+document.getElementById("requests").innerText = data.total_requests;
+document.getElementById("approved").innerText = data.approved_requests;
+
+}
+
+loadStats();
+
+
+</script>
+
+</body>
+</html>
