@@ -1,141 +1,261 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="MediBridge NGO Dashboard - Browse pharmacies, request medicines, and track your redistribution requests.">
     <title>MediBridge | NGO Dashboard</title>
 
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/custom.css') }}">
 </head>
 <body>
 
-<nav class="navbar navbar-dark bg-success">
-  <div class="container">
-    <a class="navbar-brand">MediBridge NGO</a>
-    <button class="btn btn-light" onclick="logout()">Logout</button>
+<!-- NAVBAR -->
+<nav class="navbar-custom">
+  <div class="container d-flex justify-content-between align-items-center">
+    <a class="navbar-brand" href="/ngo-dashboard">Medi<span>Bridge</span></a>
+    <div class="d-flex align-items-center gap-2">
+      <a href="/ngo-dashboard" class="btn-nav active">Dashboard</a>
+      <a href="/ngo-requests-page" class="btn-nav">My Requests</a>
+      <button class="btn-nav" onclick="logout()">Logout</button>
+      <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()">🌙</button>
+    </div>
   </div>
 </nav>
 
-<div class="container mt-5">
+<div class="container mt-4 fade-in">
 
-    <h2 class="text-success mb-4">NGO Dashboard</h2>
+    <h1 class="page-title">NGO Dashboard</h1>
+    <p class="page-subtitle">Browse available medicines and request redistribution</p>
 
-    <div class="row text-center">
-
+    <!-- STAT CARDS -->
+    <div class="row g-4 mb-4">
         <div class="col-md-4">
-            <div class="card p-4">
-                <h5>Available Medicines</h5>
-                <h3 id="available">0</h3>
+            <div class="glass-card stat-card">
+                <div class="stat-value" id="available">–</div>
+                <div class="stat-label">Available Medicines</div>
             </div>
         </div>
-
         <div class="col-md-4">
-            <div class="card p-4">
-                <h5>Requests Made</h5>
-                <h3 id="requests">0</h3>
+            <div class="glass-card stat-card">
+                <div class="stat-value" id="requests" style="color: #6366f1;">–</div>
+                <div class="stat-label">Requests Made</div>
             </div>
         </div>
-
         <div class="col-md-4">
-            <div class="card p-4">
-                <h5>Approved Requests</h5>
-                <h3 id="approved">0</h3>
+            <div class="glass-card stat-card">
+                <div class="stat-value" id="approved">–</div>
+                <div class="stat-label">Approved Requests</div>
             </div>
         </div>
-
     </div>
 
-    <div class="mt-5 text-center">
-        <button class="btn btn-success" onclick="loadAvailable()">View Available Medicines</button>
+    <!-- PHARMACY CARDS -->
+    <h4 class="section-title">Partner Pharmacies</h4>
+    <div id="pharmacyCards" class="row g-4 mb-4">
+        <div class="col-12"><div class="spinner-container"><div class="spinner"></div></div></div>
     </div>
 
-    <div class="mt-4">
-        <table class="table table-bordered">
-            <thead class="table-success">
+    <!-- MEDICINES TABLE -->
+    <h4 class="section-title" id="medicinesTitle">Available Medicines</h4>
+    <div class="table-container">
+        <table class="table-modern">
+            <thead>
                 <tr>
                     <th>Medicine</th>
-                    <th>Quantity</th>
+                    <th>Available Qty</th>
                     <th>Expiry</th>
                     <th>Status</th>
+                    <th>Request Qty</th>
                     <th>Action</th>
                 </tr>
             </thead>
-            <tbody id="ngoTable"></tbody>
+            <tbody id="ngoTable">
+                <tr><td colspan="6">
+                    <div class="empty-state"><div class="empty-icon">🏥</div><p>Select a pharmacy above to view its medicines</p></div>
+                </td></tr>
+            </tbody>
         </table>
     </div>
-
 </div>
 
+<!-- FOOTER -->
+<footer class="footer-custom mt-5">
+    © 2026 MediBridge
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script>
+// ===== Theme =====
+function toggleTheme() {
+    const html = document.documentElement;
+    const next = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    html.setAttribute('data-theme', next);
+    localStorage.setItem('theme', next);
+    document.getElementById('themeToggle').textContent = next === 'dark' ? '☀️' : '🌙';
+}
+(function() {
+    const saved = localStorage.getItem('theme') || 'light';
+    document.documentElement.setAttribute('data-theme', saved);
+    const btn = document.getElementById('themeToggle');
+    if (btn) btn.textContent = saved === 'dark' ? '☀️' : '🌙';
+})();
+
+// ===== Toast =====
+function showToast(message, type = 'success') {
+    const toast = document.createElement('div');
+    toast.className = `toast-custom toast-${type}`;
+    toast.textContent = message;
+    document.body.appendChild(toast);
+    setTimeout(() => {
+        toast.style.animation = 'toastOut 0.3s ease forwards';
+        setTimeout(() => toast.remove(), 300);
+    }, 3000);
+}
+
+// ===== Auth =====
 function logout(){
-localStorage.clear();
-window.location.href="/login-page";
+    localStorage.clear();
+    window.location.href = "/login-page";
 }
 
-async function loadAvailable(){
-
-let res = await fetch("/available-medicines");
-let data = await res.json();
-
-let table = document.getElementById("ngoTable");
-table.innerHTML = "";
-
-let count = 0;
-
-data.forEach(med => {
-
-count++;
-
-table.innerHTML += `
-<tr>
-<td>${med.medicine_name}</td>
-<td>${med.quantity}</td>
-<td>${med.expiry_date}</td>
-<td>${med.status}</td>
-<td>
-<button class="btn btn-primary btn-sm"
-onclick="requestMedicine(${med.medicine_id})">
-Request
-</button>
-</td>
-</tr>
-`;
-});
-
-document.getElementById("available").innerText = count;
-}
-
-async function requestMedicine(medicine_id){
-
-let ngo_id = localStorage.getItem("user_id");
-
-await fetch("/request-medicine",{
-method:"POST",
-headers:{"Content-Type":"application/json"},
-body:JSON.stringify({
-medicine_id: medicine_id,
-ngo_id: ngo_id,
-quantity: 1
-})
-});
-
-alert("Request sent");
-loadStats();
-}
-
+// ===== Load Stats =====
 async function loadStats(){
+    let user_id = localStorage.getItem("user_id");
 
-let user_id = localStorage.getItem("user_id");
+    try {
+        let res = await fetch(`/api/ngo-stats/${user_id}`);
+        let data = await res.json();
 
-let res = await fetch(`/ngo-stats/${user_id}`);
-let data = await res.json();
+        if(data.message) { console.error(data.message); return; }
 
-document.getElementById("requests").innerText = data.total_requests;
-document.getElementById("approved").innerText = data.approved_requests;
-
+        document.getElementById("requests").innerText = data.total_requests || 0;
+        document.getElementById("approved").innerText = data.approved_requests || 0;
+    } catch(err) {
+        console.error("Failed to load stats:", err);
+    }
 }
 
+// ===== Load Pharmacies =====
+async function loadPharmacies(){
+    try {
+        let res = await fetch("/api/pharmacies");
+        let data = await res.json();
+
+        let container = document.getElementById("pharmacyCards");
+        container.innerHTML = "";
+
+        if(data.length === 0) {
+            container.innerHTML = `<div class="col-12"><div class="empty-state"><div class="empty-icon">🏪</div><p>No pharmacies registered yet.</p></div></div>`;
+            return;
+        }
+
+        data.forEach(p => {
+            container.innerHTML += `
+            <div class="col-md-4">
+                <div class="pharmacy-card">
+                    <h5>🏥 ${p.pharmacy_name}</h5>
+                    <p>📍 ${p.address}</p>
+                    <div class="d-flex gap-2">
+                        <button class="btn-action btn-view" onclick="viewMedicines(${p.pharmacy_id}, '${p.pharmacy_name}')">View Medicines</button>
+                        <button class="btn-action btn-request" onclick="connectPharmacy('${p.contact}')">📞 Connect</button>
+                    </div>
+                </div>
+            </div>`;
+        });
+    } catch(err) {
+        showToast("Failed to load pharmacies", 'error');
+    }
+}
+
+function connectPharmacy(contact){
+    showToast("📞 Contact Pharmacy: " + contact, 'warning');
+}
+
+// ===== View Medicines from a Pharmacy =====
+async function viewMedicines(pharmacy_id, pharmacy_name){
+    document.getElementById("medicinesTitle").textContent = `Medicines from ${pharmacy_name || 'Pharmacy'}`;
+
+    let table = document.getElementById("ngoTable");
+    table.innerHTML = `<tr><td colspan="6"><div class="spinner-container"><div class="spinner"></div></div></td></tr>`;
+
+    try {
+        let res = await fetch(`/api/pharmacy-medicines/${pharmacy_id}`);
+        let data = await res.json();
+
+        table.innerHTML = "";
+        document.getElementById("available").innerText = data.length;
+
+        if(data.length === 0) {
+            table.innerHTML = `<tr><td colspan="6"><div class="empty-state"><div class="empty-icon">📭</div><p>No medicines available at this pharmacy.</p></div></td></tr>`;
+            return;
+        }
+
+        data.forEach(med => {
+            let badge = '';
+            if(med.status === "SAFE") badge = '<span class="badge-status badge-safe">● Safe</span>';
+            else if(med.status === "NEAR_EXPIRY") badge = '<span class="badge-status badge-near">⚠ Near Expiry</span>';
+
+            table.innerHTML += `
+            <tr>
+                <td><strong>${med.medicine_name}</strong></td>
+                <td>${med.quantity}</td>
+                <td>${med.expiry_date}</td>
+                <td>${badge}</td>
+                <td><input type="number" min="1" max="${med.quantity}" class="qty-input" id="qty-${med.medicine_id}" value="1"></td>
+                <td><button class="btn-action btn-request" onclick="requestMedicine(${med.medicine_id})">Request</button></td>
+            </tr>`;
+        });
+    } catch(err) {
+        showToast("Failed to load medicines", 'error');
+    }
+}
+
+// ===== Request Medicine =====
+async function requestMedicine(medicine_id){
+    let ngo_id = localStorage.getItem("user_id");
+    let qtyInput = document.getElementById(`qty-${medicine_id}`);
+
+    if(!qtyInput){
+        showToast("Quantity input not found", 'error');
+        return;
+    }
+
+    let qty = parseInt(qtyInput.value);
+
+    if(!qty || qty <= 0){
+        showToast("Enter a valid quantity", 'error');
+        return;
+    }
+
+    try {
+        let res = await fetch("/api/request-medicine", {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({
+                medicine_id: medicine_id,
+                ngo_id: ngo_id,
+                quantity: qty
+            })
+        });
+
+        let data = await res.json();
+
+        if(res.ok){
+            showToast("✅ " + data.message);
+            loadStats();
+        } else {
+            showToast(data.message, 'error');
+        }
+    } catch(err) {
+        showToast("Failed to send request", 'error');
+    }
+}
+
+// ===== Init =====
 loadStats();
-
-
+loadPharmacies();
 </script>
 
 </body>

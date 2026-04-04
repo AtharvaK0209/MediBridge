@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="MediBridge - View and manage NGO redistribution requests for your pharmacy.">
+    <title>Pharmacy Requests | MediBridge</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/custom.css') }}">
+</head>
+<body>
+
+<!-- NAVBAR -->
+<nav class="navbar-custom">
+  <div class="container d-flex justify-content-between align-items-center">
+    <a class="navbar-brand" href="/pharmacy-dashboard">Medi<span>Bridge</span></a>
+    <div class="d-flex align-items-center gap-2">
+      <a href="/pharmacy-dashboard" class="btn-nav">Dashboard</a>
+      <a href="/pharmacy-requests-page" class="btn-nav active">Requests</a>
+      <button class="btn-nav" onclick="logout()">Logout</button>
+      <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()">🌙</button>
+    </div>
+  </div>
+</nav>
+
+<div class="container mt-4 fade-in">
+
+    <h1 class="page-title">NGO Requests</h1>
+    <p class="page-subtitle">Review and manage redistribution requests from NGOs</p>
+
+    <div class="table-container">
+        <table class="table-modern">
+            <thead>
+                <tr>
+                    <th>NGO</th>
+                    <th>Medicine</th>
+                    <th>Quantity</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody id="requestTable">
+                <tr><td colspan="5">
+                    <div class="spinner-container"><div class="spinner"></div></div>
+                </td></tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- FOOTER -->
+<footer class="footer-custom mt-5">
+    © 2026 MediBridge
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+// ===== Theme =====
+function toggleTheme() {
+    const html = document.documentElement;
+    const next = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    html.setAttribute('data-theme', next);
+    localStorage.setItem('theme', next);
+    document.getElementById('themeToggle').textContent = next === 'dark' ? '☀️' : '🌙';
+}
+(function() {
+    const saved = localStorage.getItem('theme') || 'light';
+    document.documentElement.setAttribute('data-theme', saved);
+    const btn = document.getElementById('themeToggle');
+    if (btn) btn.textContent = saved === 'dark' ? '☀️' : '🌙';
+})();
+
+// ===== Toast =====
+function showToast(message, type = 'success') {
+    const toast = document.createElement('div');
+    toast.className = `toast-custom toast-${type}`;
+    toast.textContent = message;
+    document.body.appendChild(toast);
+    setTimeout(() => {
+        toast.style.animation = 'toastOut 0.3s ease forwards';
+        setTimeout(() => toast.remove(), 300);
+    }, 3000);
+}
+
+// ===== Auth =====
+function logout(){
+    localStorage.clear();
+    window.location.href = "/login-page";
+}
+
+// ===== Load Requests =====
+async function loadRequests(){
+    let user_id = localStorage.getItem("user_id");
+
+    try {
+        let res = await fetch(`/api/pharmacy-requests/${user_id}`);
+        let data = await res.json();
+
+        let table = document.getElementById("requestTable");
+        table.innerHTML = "";
+
+        if(data.message){
+            showToast(data.message, 'error');
+            return;
+        }
+
+        if(data.length === 0){
+            table.innerHTML = `<tr><td colspan="5"><div class="empty-state"><div class="empty-icon">📋</div><p>No requests received yet.</p></div></td></tr>`;
+            return;
+        }
+
+        data.forEach(req => {
+            let badge = '';
+            if(req.status === "APPROVED") badge = '<span class="badge-status badge-approved">✓ Approved</span>';
+            else if(req.status === "REJECTED") badge = '<span class="badge-status badge-rejected">✕ Rejected</span>';
+            else badge = '<span class="badge-status badge-pending">◦ Pending</span>';
+
+            let buttons = '';
+            if(req.status === "PENDING"){
+                buttons = `
+                    <button class="btn-action btn-approve me-1" onclick="updateRequest(${req.request_id}, 'APPROVED')">Approve</button>
+                    <button class="btn-action btn-reject" onclick="updateRequest(${req.request_id}, 'REJECTED')">Reject</button>
+                `;
+            } else {
+                buttons = '<span style="color: var(--text-muted); font-size: 0.8rem;">—</span>';
+            }
+
+            table.innerHTML += `
+            <tr>
+                <td><strong>${req.ngo_name}</strong></td>
+                <td>${req.medicine_name}</td>
+                <td>${req.requested_quantity}</td>
+                <td>${badge}</td>
+                <td>${buttons}</td>
+            </tr>`;
+        });
+    } catch(err) {
+        showToast("Failed to load requests", 'error');
+    }
+}
+
+// ===== Update Request =====
+async function updateRequest(id, action){
+    try {
+        let res = await fetch("/api/update-request", {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({
+                request_id: id,
+                action: action
+            })
+        });
+
+        let data = await res.json();
+
+        if(res.ok){
+            showToast(`✅ Request ${action.toLowerCase()}`);
+            loadRequests();
+        } else {
+            showToast(data.message, 'error');
+        }
+    } catch(err) {
+        showToast("Failed to update request", 'error');
+    }
+}
+
+loadRequests();
+</script>
+
+</body>
+</html>

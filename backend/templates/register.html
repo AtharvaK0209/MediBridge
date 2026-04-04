@@ -1,73 +1,148 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Register for MediBridge - Join as a pharmacy or NGO to manage medicine redistribution.">
     <title>Register | MediBridge</title>
-
 
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/custom.css') }}">
 </head>
 <body>
 
-<nav class="navbar navbar-dark bg-success">
-  <div class="container">
-    <a class="navbar-brand" href="/">MediBridge</a>
+<nav class="navbar-custom">
+  <div class="container d-flex justify-content-between align-items-center">
+    <a class="navbar-brand" href="/home">Medi<span>Bridge</span></a>
+    <div class="d-flex align-items-center gap-2">
+        <a class="btn-nav" href="/login-page">Login</a>
+        <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()">🌙</button>
+    </div>
   </div>
 </nav>
 
-<div class="container mt-5">
+<div class="container mt-5 fade-in">
     <div class="col-md-6 mx-auto">
         <div class="form-card">
 
-            <h3 class="text-center text-success mb-4">Register</h3>
+            <h3 class="text-center">Create Account</h3>
+            <p class="form-subtitle text-center">Join MediBridge as a pharmacy or NGO</p>
 
             <form id="registerForm">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label-custom">Full Name</label>
+                        <input class="form-control-custom" id="reg_name" placeholder="Your name" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label-custom">Email</label>
+                        <input class="form-control-custom" id="reg_email" type="email" placeholder="you@example.com" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label-custom">Password</label>
+                        <input type="password" class="form-control-custom" id="reg_password" placeholder="Create a password" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label-custom">Role</label>
+                        <select class="form-select-custom" id="reg_role">
+                            <option value="pharmacy">Pharmacy</option>
+                            <option value="ngo">NGO</option>
+                        </select>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label-custom">Organization Name</label>
+                        <input class="form-control-custom" id="reg_org_name" placeholder="Organization name" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label-custom">Address</label>
+                        <input class="form-control-custom" id="reg_address" placeholder="Full address" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label-custom">Contact</label>
+                        <input class="form-control-custom" id="reg_contact" placeholder="Phone number" required>
+                    </div>
+                </div>
 
-                <input class="form-control mb-3" id="name" placeholder="Name" required>
-                <input class="form-control mb-3" id="email" placeholder="Email" required>
-                <input type="password" class="form-control mb-3" id="password" placeholder="Password" required>
-
-                <select class="form-control mb-3" id="role">
-                    <option value="pharmacy">Pharmacy</option>
-                    <option value="ngo">NGO</option>
-                </select>
-
-                <input class="form-control mb-3" id="org_name" placeholder="Organization Name">
-                <input class="form-control mb-3" id="address" placeholder="Address">
-                <input class="form-control mb-3" id="contact" placeholder="Contact">
-
-                <button type="submit" class="btn btn-success w-100">Register</button>
+                <button type="submit" class="btn-accent w-100 mt-4" id="registerBtn">Create Account</button>
             </form>
 
+            <p class="text-center mt-3" style="font-size:0.85rem; color: var(--text-muted);">
+                Already have an account? <a href="/login-page" style="color: var(--accent); font-weight:600;">Login</a>
+            </p>
         </div>
     </div>
 </div>
 
+<footer class="footer-custom mt-5">
+    © 2026 MediBridge
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-document.getElementById("registerForm").onsubmit = async function(e){
-e.preventDefault();
-
-let res = await fetch("/register-page",{
-method:"POST",
-headers:{"Content-Type":"application/json"},
-body:JSON.stringify({
-name: name.value,
-email: email.value,
-password: password.value,
-role: role.value,
-org_name: org_name.value,
-address: address.value,
-contact: contact.value
-})
-});
-
-let data = await res.json();
-
-alert(data.message);
-
-if(res.ok){
-window.location.href="/login-page";
+// Theme toggle
+function toggleTheme() {
+    const html = document.documentElement;
+    const next = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    html.setAttribute('data-theme', next);
+    localStorage.setItem('theme', next);
+    document.getElementById('themeToggle').textContent = next === 'dark' ? '☀️' : '🌙';
 }
+(function() {
+    const saved = localStorage.getItem('theme') || 'light';
+    document.documentElement.setAttribute('data-theme', saved);
+    const btn = document.getElementById('themeToggle');
+    if (btn) btn.textContent = saved === 'dark' ? '☀️' : '🌙';
+})();
+
+// Toast
+function showToast(message, type = 'success') {
+    const toast = document.createElement('div');
+    toast.className = `toast-custom toast-${type}`;
+    toast.textContent = message;
+    document.body.appendChild(toast);
+    setTimeout(() => {
+        toast.style.animation = 'toastOut 0.3s ease forwards';
+        setTimeout(() => toast.remove(), 300);
+    }, 3000);
+}
+
+// Register form
+document.getElementById("registerForm").onsubmit = async function(e){
+    e.preventDefault();
+
+    const btn = document.getElementById("registerBtn");
+    btn.disabled = true;
+    btn.textContent = "Creating account...";
+
+    try {
+        let res = await fetch("/api/register", {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({
+                name: document.getElementById("reg_name").value,
+                email: document.getElementById("reg_email").value,
+                password: document.getElementById("reg_password").value,
+                role: document.getElementById("reg_role").value,
+                org_name: document.getElementById("reg_org_name").value,
+                address: document.getElementById("reg_address").value,
+                contact: document.getElementById("reg_contact").value
+            })
+        });
+
+        let data = await res.json();
+
+        if(res.ok){
+            showToast("✅ " + data.message);
+            setTimeout(() => { window.location.href = "/login-page"; }, 1000);
+        } else {
+            showToast(data.message, 'error');
+        }
+    } catch(err) {
+        showToast("Server error. Please try again.", 'error');
+    } finally {
+        btn.disabled = false;
+        btn.textContent = "Create Account";
+    }
 }
 </script>
 

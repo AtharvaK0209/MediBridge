@@ -1,30 +1,44 @@
 from flask import Blueprint, request, jsonify
 from database import get_db_connection
+from werkzeug.security import generate_password_hash, check_password_hash
 
 auth_bp = Blueprint("auth", __name__)
 
 # REGISTER
-@auth_bp.route("/register-page", methods=["POST"])
+@auth_bp.route("/api/register", methods=["POST"])
 def register():
     data = request.get_json()
 
-    name = data.get("name")
-    email = data.get("email")
-    password = data.get("password")
-    role = data.get("role")
-    org_name = data.get("org_name")
-    address = data.get("address")
-    contact = data.get("contact")
+    name = data.get("name", "").strip()
+    email = data.get("email", "").strip()
+    password = data.get("password", "")
+    role = data.get("role", "").strip()
+    org_name = data.get("org_name", "").strip()
+    address = data.get("address", "").strip()
+    contact = data.get("contact", "").strip()
+
+    # Input validation
+    if not all([name, email, password, role]):
+        return jsonify({"message": "Name, email, password and role are required"}), 400
+
+    if role not in ("pharmacy", "ngo"):
+        return jsonify({"message": "Role must be 'pharmacy' or 'ngo'"}), 400
 
     conn = get_db_connection()
+    if not conn:
+        return jsonify({"message": "Database connection failed"}), 500
+
     cursor = conn.cursor()
 
     try:
+        # Hash the password before storing
+        hashed_pw = generate_password_hash(password)
+
         # Insert into users table
         cursor.execute("""
             INSERT INTO users (name, email, password, role)
             VALUES (%s, %s, %s, %s)
-        """, (name, email, password, role))
+        """, (name, email, hashed_pw, role))
 
         user_id = cursor.lastrowid
 
@@ -54,30 +68,38 @@ def register():
 
 
 # LOGIN
-@auth_bp.route("/login-page", methods=["POST"])
+@auth_bp.route("/api/login", methods=["POST"])
 def login():
     data = request.get_json()
 
-    email = data.get("email")
-    password = data.get("password")
+    email = data.get("email", "").strip()
+    password = data.get("password", "")
+
+    if not email or not password:
+        return jsonify({"message": "Email and password are required"}), 400
 
     conn = get_db_connection()
+    if not conn:
+        return jsonify({"message": "Database connection failed"}), 500
+
     cursor = conn.cursor(dictionary=True)
 
-    cursor.execute("""
-        SELECT * FROM users WHERE email=%s AND password=%s
-    """, (email, password))
+    try:
+        cursor.execute("""
+            SELECT * FROM users WHERE email=%s
+        """, (email,))
 
-    user = cursor.fetchone()
+        user = cursor.fetchone()
 
-    cursor.close()
-    conn.close()
+        if user and check_password_hash(user["password"], password):
+            return jsonify({
+                "message": "Login successful",
+                "role": user["role"],
+                "user_id": user["user_id"]
+            }), 200
 
-    if user:
-        return jsonify({
-            "message": "Login successful",
-            "role": user["role"],
-            "user_id": user["user_id"]
-        }), 200
+        return jsonify({"message": "Invalid credentials"}), 401
 
-    return jsonify({"message": "Invalid credentials"}), 401
+    finally:
+        cursor.close()
+        conn.close()

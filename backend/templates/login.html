@@ -1,6 +1,9 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Login to MediBridge - Manage your pharmacy inventory or NGO medicine requests.">
     <title>Login | MediBridge</title>
 
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -8,66 +11,117 @@
 </head>
 <body>
 
-<nav class="navbar navbar-dark bg-success shadow-sm">
-  <div class="container">
-    <a class="navbar-brand" href="/">MediBridge</a>
+<nav class="navbar-custom">
+  <div class="container d-flex justify-content-between align-items-center">
+    <a class="navbar-brand" href="/home">Medi<span>Bridge</span></a>
+    <div class="d-flex align-items-center gap-2">
+        <a class="btn-nav" href="/register-page">Register</a>
+        <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()">🌙</button>
+    </div>
   </div>
 </nav>
 
-<div class="container mt-5">
+<div class="container mt-5 fade-in">
     <div class="col-md-5 mx-auto">
         <div class="form-card">
 
-            <h3 class="text-center text-success mb-4">Login</h3>
+            <h3 class="text-center">Welcome Back</h3>
+            <p class="form-subtitle text-center">Sign in to your MediBridge account</p>
 
             <form id="loginForm">
-                <input class="form-control mb-3" id="email" placeholder="Email" required>
-                <input type="password" class="form-control mb-3" id="password" placeholder="Password" required>
+                <div class="mb-3">
+                    <label class="form-label-custom">Email</label>
+                    <input class="form-control-custom" id="email" type="email" placeholder="you@example.com" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label-custom">Password</label>
+                    <input type="password" class="form-control-custom" id="password" placeholder="Enter your password" required>
+                </div>
 
-                <button type="submit" class="btn btn-success w-100">Login</button>
+                <button type="submit" class="btn-accent w-100 mt-2" id="loginBtn">Login</button>
             </form>
 
+            <p class="text-center mt-3" style="font-size:0.85rem; color: var(--text-muted);">
+                Don't have an account? <a href="/register-page" style="color: var(--accent); font-weight:600;">Register</a>
+            </p>
         </div>
     </div>
 </div>
 
-<footer class="bg-success text-white text-center py-3 mt-5">
+<footer class="footer-custom mt-5">
     © 2026 MediBridge
 </footer>
 
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script>
+// Theme toggle
+function toggleTheme() {
+    const html = document.documentElement;
+    const next = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    html.setAttribute('data-theme', next);
+    localStorage.setItem('theme', next);
+    document.getElementById('themeToggle').textContent = next === 'dark' ? '☀️' : '🌙';
+}
+(function() {
+    const saved = localStorage.getItem('theme') || 'light';
+    document.documentElement.setAttribute('data-theme', saved);
+    const btn = document.getElementById('themeToggle');
+    if (btn) btn.textContent = saved === 'dark' ? '☀️' : '🌙';
+})();
+
+// Toast helper
+function showToast(message, type = 'success') {
+    const toast = document.createElement('div');
+    toast.className = `toast-custom toast-${type}`;
+    toast.textContent = message;
+    document.body.appendChild(toast);
+    setTimeout(() => {
+        toast.style.animation = 'toastOut 0.3s ease forwards';
+        setTimeout(() => toast.remove(), 300);
+    }, 3000);
+}
+
+// Login form
 document.getElementById("loginForm").onsubmit = async function(e){
-e.preventDefault();
+    e.preventDefault();
 
-let res = await fetch("/login-page",{
-method:"POST",
-headers:{"Content-Type":"application/json"},
-body:JSON.stringify({
-email: email.value,
-password: password.value
-})
-});
+    const btn = document.getElementById("loginBtn");
+    btn.disabled = true;
+    btn.textContent = "Signing in...";
 
-let data = await res.json();
+    try {
+        let res = await fetch("/api/login", {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({
+                email: document.getElementById("email").value,
+                password: document.getElementById("password").value
+            })
+        });
 
-if(res.ok){
-alert("Login successful");
+        let data = await res.json();
 
-// Store user info in localStorage
-localStorage.setItem("user_id", data.user_id);
-localStorage.setItem("role", data.role);
+        if(res.ok){
+            showToast("✅ Login successful!");
+            localStorage.setItem("user_id", data.user_id);
+            localStorage.setItem("role", data.role);
 
-// Redirect based on role
-if(data.role === "pharmacy"){
-window.location.href="/pharmacy-dashboard";
-}
-else if(data.role === "ngo"){
-window.location.href="/ngo-dashboard";
-}
-
-}else{
-alert(data.message);
-}
+            setTimeout(() => {
+                if(data.role === "pharmacy"){
+                    window.location.href = "/pharmacy-dashboard";
+                } else if(data.role === "ngo"){
+                    window.location.href = "/ngo-dashboard";
+                }
+            }, 800);
+        } else {
+            showToast(data.message, 'error');
+        }
+    } catch(err) {
+        showToast("Server error. Please try again.", 'error');
+    } finally {
+        btn.disabled = false;
+        btn.textContent = "Login";
+    }
 }
 </script>
 
